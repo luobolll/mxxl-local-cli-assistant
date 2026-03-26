@@ -53,6 +53,26 @@ class ActionDecision(BaseModel):
     tool_name: str | None = None
     arguments: dict[str, Any] = Field(default_factory=dict)
 
+    @model_validator(mode="before")
+    @classmethod
+    def validate_required_fields_present(cls, data: Any) -> Any:
+        """先检查动作协议要求的字段是否被模型显式输出。"""
+
+        if not isinstance(data, dict):
+            return data
+
+        action = data.get("action")
+        if action == "respond" and "answer" not in data:
+            raise ValueError("当 action=respond 时，必须提供 answer 字段。")
+
+        if action == "tool_call":
+            if "tool_name" not in data:
+                raise ValueError("当 action=tool_call 时，必须提供 tool_name 字段。")
+            if "arguments" not in data:
+                raise ValueError("当 action=tool_call 时，必须提供 arguments 字段。")
+
+        return data
+
     @model_validator(mode="after")
     def validate_action_shape(self) -> "ActionDecision":
         """根据 action 的不同，检查必须字段是否存在。"""

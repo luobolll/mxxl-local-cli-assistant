@@ -35,11 +35,17 @@ class PromptBuilder:
 
         return (
             "你是一个运行在本地命令行中的个人助手。\n"
-            "你每一轮只能选择一个动作。\n"
-            "你必须只输出合法 JSON，不能输出解释、前后缀、Markdown 代码块或额外文本。\n"
+            "你只能输出合法 JSON，不能输出解释、前后缀、Markdown 代码块或额外文本。\n"
+            "你每一轮只能选择一个动作：直接回答或调用一个工具。\n"
+            "action 只能是 respond 或 tool_call。\n"
             '如果直接回答，使用 {"action": "respond", "answer": "..."}。\n'
             '如果需要调用工具，使用 {"action": "tool_call", "tool_name": "...", "arguments": {...}}。\n'
             "不要编造工具执行结果。\n"
+            "如果用户要记录信息，优先调用 save_memory。\n"
+            "如果用户要查看记忆，调用 get_memory。\n"
+            "如果用户要记录待办，调用 add_todo。\n"
+            "如果用户要查看待办，调用 list_todos。\n"
+            "当 action=tool_call 时，tool_name 必须是已注册工具名，arguments 必须是 JSON object。\n"
             "当 action=respond 时，请使用用户当前使用的语言回答。\n\n"
             "可用工具如下：\n"
             f"{tool_description}\n\n"

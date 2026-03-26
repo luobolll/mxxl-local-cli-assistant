@@ -23,7 +23,7 @@ SCHEMA_STATEMENTS = [
     CREATE TABLE IF NOT EXISTS todos (
         id INTEGER PRIMARY KEY,
         task TEXT NOT NULL,
-        status TEXT NOT NULL,
+        status TEXT NOT NULL CHECK (status IN ('open', 'done')),
         created_at TEXT NOT NULL,
         updated_at TEXT NOT NULL
     )

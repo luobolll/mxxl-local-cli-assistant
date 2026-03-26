@@ -36,7 +36,7 @@ class TraceLogger:
 
         self.trace_store.add_trace(trace_record)
         self.logger.exception(
-            "记录请求轨迹时出现异常 session_id=%s error=%s",
+            "请求处理失败，已记录 trace session_id=%s error=%s",
             trace_record.session_id,
             exc,
         )

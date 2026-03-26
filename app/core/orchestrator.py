@@ -6,6 +6,7 @@
 
 from __future__ import annotations
 
+from app.core.errors import AssistantError
 from app.core.response_formatter import ResponseFormatter
 from app.core.session_manager import SessionManager
 from app.core.tool_executor import ToolExecutor
@@ -110,9 +111,30 @@ class Orchestrator:
             )
             self.trace_logger.record(trace_record)
             return final_response
+        except AssistantError as exc:
+            # 已知错误类型走固定用户文案，同时把更具体的细节留给日志和 trace。
+            final_response = self.response_formatter.format_error(exc.user_message)
+            self.message_store.add_message(
+                session_id=session_id,
+                role="assistant",
+                content=final_response,
+            )
+            trace_record = TraceRecord(
+                session_id=session_id,
+                user_input=user_input,
+                prompt_text=prompt_text,
+                model_output=raw_model_output,
+                action_type=action_type,
+                tool_name=tool_name,
+                tool_args_json=tool_args_json,
+                tool_result_json=tool_result_json,
+                final_response=final_response,
+            )
+            self.trace_logger.record_error(trace_record, exc)
+            return final_response
         except Exception as exc:
-            # 任何一个环节失败，都统一转成可读错误信息，并记录 trace。
-            final_response = self.response_formatter.format_error(str(exc))
+            # 兜底异常不向用户暴露内部细节，但仍然完整记录 trace 和异常栈。
+            final_response = self.response_formatter.format_error("请求处理失败，请重试")
             self.message_store.add_message(
                 session_id=session_id,
                 role="assistant",

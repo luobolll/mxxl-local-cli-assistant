@@ -6,6 +6,7 @@ import json
 
 from pydantic import ValidationError
 
+from app.core.errors import ModelOutputParseError, ModelOutputSchemaError
 from app.schemas.models import ActionDecision
 
 
@@ -19,12 +20,12 @@ class DecisionParser:
         try:
             payload = json.loads(json_text)
         except json.JSONDecodeError as exc:
-            raise ValueError(f"模型输出不是合法 JSON：{exc}") from exc
+            raise ModelOutputParseError(f"模型输出不是合法 JSON：{exc}") from exc
 
         try:
             return ActionDecision.model_validate(payload)
         except ValidationError as exc:
-            raise ValueError(f"模型输出不符合动作协议：{exc}") from exc
+            raise ModelOutputSchemaError(f"模型输出不符合动作协议：{exc}") from exc
 
     def _extract_json(self, raw_output: str) -> str:
         """从模型输出中提取 JSON 部分。

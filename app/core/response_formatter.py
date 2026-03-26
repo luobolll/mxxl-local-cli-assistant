@@ -26,7 +26,7 @@ class ResponseFormatter:
             return self.format_error(tool_result.error or "工具执行失败。")
 
         if tool_result.tool_name == "add_todo":
-            return f"已保存待办：{tool_result.data['task']}"
+            return f"已记录待办：{tool_result.data['task']}"
 
         if tool_result.tool_name == "list_todos":
             items = tool_result.data.get("items", [])
@@ -38,20 +38,20 @@ class ResponseFormatter:
             return "\n".join(lines)
 
         if tool_result.tool_name == "save_memory":
-            return f"已保存记忆：{tool_result.data['key']} = {tool_result.data['value']}"
+            return f"已记住：{tool_result.data['key']} = {tool_result.data['value']}"
 
         if tool_result.tool_name == "get_memory":
             value = tool_result.data.get("value")
             if value is None:
-                return f"没有找到对应记忆：{tool_result.data['key']}"
-            return f"查到记忆：{tool_result.data['key']} = {value}"
+                return f"没有找到键为 {tool_result.data['key']} 的记忆"
+            return f"已找到记忆：{tool_result.data['key']} = {value}"
 
         return "工具执行完成。"
 
     def format_error(self, error_message: str) -> str:
         """统一错误输出格式。"""
 
-        return f"请求处理失败：{error_message}"
+        return error_message
 
     def to_json_text(self, payload: dict[str, Any]) -> str:
         """把字典稳定地转换成 JSON 文本，便于写入 trace。"""
