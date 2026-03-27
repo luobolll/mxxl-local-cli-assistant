@@ -3,7 +3,6 @@ __pycache__/
 *.pyc.*
 .env
 docs/*
-!docs/personal-assistant-agent-mvp.md
 data/*.db
 data/*.db-journal
 data/test-config-*/
