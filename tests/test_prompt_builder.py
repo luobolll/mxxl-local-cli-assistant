@@ -50,7 +50,10 @@ class PromptBuilderTestCase(unittest.TestCase):
         )
 
         self.assertIn("如果用户明确要求调用某个工具，就必须返回 tool_call", system_prompt)
-        self.assertIn("两个合法输出示例", system_prompt)
+        self.assertIn("绝对不能把 action 写成 add_todo、list_todos、save_memory、get_memory", system_prompt)
+        self.assertIn("下面是错误输出示例", system_prompt)
+        self.assertIn('{"action": "add_todo"', system_prompt)
+        self.assertIn("输出前请做最后一次自检", system_prompt)
         self.assertIn("最近对话如下：", user_prompt)
         self.assertIn("用户：请记住我喜欢喝咖啡", user_prompt)
 

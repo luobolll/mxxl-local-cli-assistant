@@ -46,8 +46,11 @@ class PromptBuilder:
             "你只能输出合法 JSON，不能输出解释、前后缀、Markdown 代码块或额外文本。\n"
             "你每一轮只能选择一个动作：直接回答或调用一个工具。\n"
             "action 只能是 respond 或 tool_call。\n"
+            "如果你决定调用工具，action 仍然必须写 tool_call，绝对不能把 action 写成 add_todo、list_todos、save_memory、get_memory。\n"
+            "tool_name 字段才是工具名字段，不能省略，不能放错位置。\n"
             "如果用户明确要求调用某个工具，就必须返回 tool_call，不要改成自然语言回答。\n"
             "如果用户要求保存或查询待办、记忆，优先调用工具，不要编造已经执行过的结果。\n"
+            "如果用户要求调用工具，而你输出 respond 或输出自然语言句子，这是错误的。\n"
             '如果直接回答，使用 {"action": "respond", "answer": "..."}。\n'
             '如果需要调用工具，使用 {"action": "tool_call", "tool_name": "...", "arguments": {...}}。\n'
             "不要编造工具执行结果。\n"
@@ -59,9 +62,18 @@ class PromptBuilder:
             "当 action=respond 时，请使用用户当前使用的语言回答。\n\n"
             "可用工具如下：\n"
             f"{tool_description}\n\n"
-            "下面是两个合法输出示例：\n"
+            "下面是合法输出示例：\n"
             '{"action": "respond", "answer": "你好"}\n'
-            '{"action": "tool_call", "tool_name": "save_memory", "arguments": {"key": "favorite_drink", "value": "coffee"}}'
+            '{"action": "tool_call", "tool_name": "save_memory", "arguments": {"key": "favorite_drink", "value": "coffee"}}\n'
+            '{"action": "tool_call", "tool_name": "add_todo", "arguments": {"task": "参加明天早上8:00的会议"}}\n\n'
+            "下面是错误输出示例，绝对不要这样输出：\n"
+            '{"action": "add_todo", "arguments": {"task": "参加明天早上8:00的会议"}}\n'
+            '{"action": "save_memory", "arguments": {"key": "favorite_drink", "value": "coffee"}}\n'
+            'Todo added successfully.\n\n'
+            "输出前请做最后一次自检：\n"
+            "1. 整个回答是否只有一个 JSON 对象。\n"
+            "2. action 是否只可能是 respond 或 tool_call。\n"
+            "3. 如果 action=tool_call，tool_name 和 arguments 是否齐全。"
         )
 
     def build(self, messages: list[Message], tool_description: str) -> str:
