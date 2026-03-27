@@ -2,6 +2,10 @@ __pycache__/
 *.pyc
 *.pyc.*
 .env
-docs/
+docs/*
+!docs/personal-assistant-agent-mvp.md
 data/*.db
 data/*.db-journal
+data/test-config-*/
+data/test-storage-*/
+data/real-smoke-*/
