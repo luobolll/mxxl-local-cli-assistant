@@ -16,7 +16,7 @@ class MemoryStore:
         """保存或更新一条记忆。"""
 
         now = utc_now_iso()
-        with self.sqlite_manager.connect() as conn:
+        with self.sqlite_manager.connection() as conn:
             conn.execute(
                 """
                 INSERT INTO memories (key, value, created_at, updated_at)
@@ -32,7 +32,7 @@ class MemoryStore:
     def get_memory(self, key: str) -> str | None:
         """按 key 查询记忆，如果不存在则返回 None。"""
 
-        with self.sqlite_manager.connect() as conn:
+        with self.sqlite_manager.connection() as conn:
             row = conn.execute(
                 "SELECT value FROM memories WHERE key = ?",
                 (key,),

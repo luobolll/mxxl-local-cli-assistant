@@ -9,6 +9,8 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
+
 from app.config import Settings
 from app.core.orchestrator import Orchestrator
 from app.core.response_formatter import ResponseFormatter
@@ -104,38 +106,61 @@ def build_orchestrator() -> Orchestrator:
     )
 
 
-def main() -> None:
-    """启动命令行助手。"""
+def run_cli_loop(
+    orchestrator: Orchestrator,
+    input_func: Callable[[str], str] = input,
+    output_func: Callable[[str], None] = print,
+) -> None:
+    """运行命令行交互循环。
 
-    orchestrator = build_orchestrator()
+    把输入输出函数作为参数传入，是为了让 CLI 层更容易做自动化测试，
+    不需要真的启动一个交互终端。
+    """
 
-    print("本地命令行助手已启动。")
-    print("输入 /help 查看可用命令。")
+    output_func("本地命令行助手已启动。")
+    output_func("输入 /help 查看可用命令。")
 
     while True:
-        user_input = input("> ").strip()
+        try:
+            user_input = input_func("> ").strip()
+        except (EOFError, KeyboardInterrupt):
+            output_func("程序已退出。")
+            return
+
         if not user_input:
             continue
 
         # 这里先处理命令行自己的控制命令，不进入大模型流程。
         if user_input == "/exit":
-            print("程序已退出。")
+            output_func("程序已退出。")
             return
 
         if user_input == "/help":
-            print("/help  查看帮助")
-            print("/clear 清空当前会话历史")
-            print("/exit  退出程序")
+            output_func("/help  查看帮助")
+            output_func("/clear 清空当前会话历史")
+            output_func("/exit  退出程序")
             continue
 
         if user_input == "/clear":
             orchestrator.clear_session()
-            print("当前会话已清空。")
+            output_func("当前会话已清空。")
             continue
 
         # 普通自然语言输入统一交给编排核心处理。
         response = orchestrator.handle_user_input(user_input)
-        print(response)
+        output_func(response)
+
+
+def main() -> None:
+    """启动命令行助手。"""
+
+    try:
+        orchestrator = build_orchestrator()
+    except Exception as exc:
+        print(f"启动失败：{exc}")
+        return
+
+    run_cli_loop(orchestrator)
 
 
 if __name__ == "__main__":

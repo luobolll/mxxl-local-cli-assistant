@@ -16,7 +16,7 @@ class TodoStore:
         """新增一条待办事项。"""
 
         now = utc_now_iso()
-        with self.sqlite_manager.connect() as conn:
+        with self.sqlite_manager.connection() as conn:
             cursor = conn.execute(
                 """
                 INSERT INTO todos (task, status, created_at, updated_at)
@@ -30,7 +30,7 @@ class TodoStore:
     def list_open_todos(self) -> list[dict[str, object]]:
         """列出所有未完成的待办事项。"""
 
-        with self.sqlite_manager.connect() as conn:
+        with self.sqlite_manager.connection() as conn:
             rows = conn.execute(
                 """
                 SELECT id, task, status, created_at, updated_at

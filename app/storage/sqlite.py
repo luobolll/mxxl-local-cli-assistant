@@ -5,6 +5,8 @@
 
 from __future__ import annotations
 
+from collections.abc import Iterator
+from contextlib import contextmanager
 import sqlite3
 from pathlib import Path
 
@@ -65,7 +67,7 @@ class SQLiteManager:
         """初始化数据库文件和表结构。"""
 
         self.db_path.parent.mkdir(parents=True, exist_ok=True)
-        with self.connect() as conn:
+        with self.connection() as conn:
             for statement in SCHEMA_STATEMENTS:
                 conn.execute(statement)
 
@@ -82,3 +84,21 @@ class SQLiteManager:
         # 这里显式切到 MEMORY 模式，避免写入时出现 disk I/O error。
         connection.execute("PRAGMA journal_mode=MEMORY")
         return connection
+
+    @contextmanager
+    def connection(self) -> Iterator[sqlite3.Connection]:
+        """提供一个会在退出时显式关闭的数据库连接。
+
+        sqlite3.Connection 自带的上下文协议只负责提交或回滚事务，
+        不会主动关闭连接。这里额外包一层，避免 Windows 下文件句柄被占用。
+        """
+
+        connection = self.connect()
+        try:
+            yield connection
+            connection.commit()
+        except Exception:
+            connection.rollback()
+            raise
+        finally:
+            connection.close()

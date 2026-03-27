@@ -15,7 +15,7 @@ class TraceStore:
     def add_trace(self, trace_record: TraceRecord) -> None:
         """保存一条 trace 记录。"""
 
-        with self.sqlite_manager.connect() as conn:
+        with self.sqlite_manager.connection() as conn:
             conn.execute(
                 """
                 INSERT INTO traces (

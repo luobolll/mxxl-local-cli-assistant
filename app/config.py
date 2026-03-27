@@ -12,10 +12,34 @@ from pathlib import Path
 
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
+DEFAULT_ENV_PATH = PROJECT_ROOT / ".env"
 DEFAULT_DATA_DIR = PROJECT_ROOT / "data"
 DEFAULT_DB_PATH = DEFAULT_DATA_DIR / "agent.db"
 DEFAULT_ZHIPU_BASE_URL = "https://open.bigmodel.cn/api/paas/v4/chat/completions"
 DEFAULT_ZHIPU_MODEL = "glm-4-flash"
+
+
+def load_local_env_file(env_path: Path) -> None:
+    """把本地 .env 文件中的键值对注入当前进程环境变量。
+
+    这样做是为了兼顾“配置来自环境变量”和“本地开发直接使用 .env”的体验：
+    - 如果系统环境变量里已经有值，则保持原值不动
+    - 只有缺失的键才从 .env 文件里补进来
+    """
+
+    if not env_path.exists():
+        return
+
+    for raw_line in env_path.read_text(encoding="utf-8").splitlines():
+        line = raw_line.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+
+        key, value = line.split("=", 1)
+        cleaned_key = key.strip()
+        cleaned_value = value.strip().strip("\"'")
+        if cleaned_key:
+            os.environ.setdefault(cleaned_key, cleaned_value)
 
 
 @dataclass(frozen=True)
@@ -34,8 +58,14 @@ class Settings:
     request_timeout_seconds: int = 60
 
     @classmethod
-    def from_env(cls) -> "Settings":
-        """从环境变量读取配置并生成 Settings 对象。"""
+    def from_env(cls, env_path: Path = DEFAULT_ENV_PATH) -> "Settings":
+        """从环境变量读取配置并生成 Settings 对象。
+
+        默认会先尝试读取项目根目录下的 .env，
+        方便本地 CLI 直接启动。
+        """
+
+        load_local_env_file(env_path)
 
         # 数据库路径允许通过环境变量覆盖，方便后面切换到别的文件位置。
         db_path = Path(os.getenv("AGENT_DB_PATH", str(DEFAULT_DB_PATH)))

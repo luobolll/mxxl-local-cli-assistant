@@ -16,7 +16,7 @@ class MessageStore:
         """新增一条消息记录。"""
 
         message = Message(role=role, content=content)
-        with self.sqlite_manager.connect() as conn:
+        with self.sqlite_manager.connection() as conn:
             conn.execute(
                 """
                 INSERT INTO messages (session_id, role, content, created_at)
@@ -29,7 +29,7 @@ class MessageStore:
     def list_recent_messages(self, session_id: str, limit: int) -> list[Message]:
         """读取某个会话最近的消息列表。"""
 
-        with self.sqlite_manager.connect() as conn:
+        with self.sqlite_manager.connection() as conn:
             rows = conn.execute(
                 """
                 SELECT role, content, created_at
@@ -48,5 +48,5 @@ class MessageStore:
     def clear_session(self, session_id: str) -> None:
         """删除某个会话的全部消息。"""
 
-        with self.sqlite_manager.connect() as conn:
+        with self.sqlite_manager.connection() as conn:
             conn.execute("DELETE FROM messages WHERE session_id = ?", (session_id,))
