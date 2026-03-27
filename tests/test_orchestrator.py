@@ -12,6 +12,7 @@ from app.core.orchestrator import Orchestrator
 from app.core.response_formatter import ResponseFormatter
 from app.core.session_manager import SessionManager
 from app.core.tool_executor import ToolExecutor
+from app.core.tool_request_router import ToolRequestRouter
 from app.core.tool_registry import ToolDefinition, ToolRegistry
 from app.parsers.decision_parser import DecisionParser
 from app.prompts.prompt_builder import PromptBuilder
@@ -25,8 +26,10 @@ class FakeLLMClient:
         self.raw_output = raw_output
         self.prompts: list[str] = []
 
-    def complete(self, prompt: str) -> str:
-        self.prompts.append(prompt)
+    def complete(self, system_prompt: str, user_prompt: str | None = None) -> str:
+        self.prompts.append(system_prompt)
+        if user_prompt is not None:
+            self.prompts.append(user_prompt)
         return self.raw_output
 
 
@@ -151,6 +154,7 @@ class OrchestratorTestCase(unittest.TestCase):
             prompt_builder=PromptBuilder(history_limit=6),
             llm_client=FakeLLMClient(raw_output),
             decision_parser=DecisionParser(),
+            tool_request_router=ToolRequestRouter(),
             tool_registry=tool_registry,
             tool_executor=ToolExecutor(tool_registry=tool_registry),
             response_formatter=ResponseFormatter(),
@@ -281,6 +285,34 @@ class OrchestratorTestCase(unittest.TestCase):
 
         self.assertEqual(response, "工具执行失败")
         self.assertEqual(len(trace_logger.error_records), 1)
+
+    def test_handle_user_input_uses_explicit_router_when_model_returns_respond(self) -> None:
+        """显式工具请求在模型误答时也应执行工具。"""
+
+        orchestrator, trace_logger, _, tool_handlers = self._build_orchestrator(
+            '{"action":"respond","answer":"Todo added successfully."}'
+        )
+
+        response = orchestrator.handle_user_input(
+            "你必须调用 save_memory 工具，把 key 设为 favorite_drink，把 value 设为 coffee。不要直接回答。"
+        )
+
+        self.assertEqual(response, "已记住：favorite_drink = coffee")
+        self.assertEqual(tool_handlers.memories["favorite_drink"], "coffee")
+        self.assertEqual(trace_logger.records[0].action_type, "tool_call")
+
+    def test_handle_user_input_uses_explicit_router_when_model_output_is_invalid(self) -> None:
+        """显式工具请求在模型输出非法时也应走程序兜底。"""
+
+        orchestrator, trace_logger, _, tool_handlers = self._build_orchestrator("{}")
+
+        response = orchestrator.handle_user_input(
+            "你必须调用 add_todo 工具，记录待办：明天买牛奶。不要直接回答。"
+        )
+
+        self.assertEqual(response, "已记录待办：明天买牛奶")
+        self.assertEqual(tool_handlers.todos, ["明天买牛奶"])
+        self.assertEqual(trace_logger.records[0].tool_name, "add_todo")
 
 
 if __name__ == "__main__":

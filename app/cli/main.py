@@ -16,6 +16,7 @@ from app.core.orchestrator import Orchestrator
 from app.core.response_formatter import ResponseFormatter
 from app.core.session_manager import SessionManager
 from app.core.tool_executor import ToolExecutor
+from app.core.tool_request_router import ToolRequestRouter
 from app.core.tool_registry import ToolDefinition, ToolRegistry
 from app.llm.llm_client import ZhipuLLMClient
 from app.observability.trace_logger import TraceLogger
@@ -98,6 +99,7 @@ def build_orchestrator() -> Orchestrator:
             timeout_seconds=settings.request_timeout_seconds,
         ),
         decision_parser=DecisionParser(),
+        tool_request_router=ToolRequestRouter(),
         tool_registry=tool_registry,
         tool_executor=ToolExecutor(tool_registry=tool_registry),
         response_formatter=ResponseFormatter(),

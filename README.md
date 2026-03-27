@@ -87,7 +87,7 @@ python -m unittest tests.test_real_smoke -v
 这个联调会验证两件事：
 
 - 至少跑通一轮普通直接回答
-- 至少跑通一轮 `save_memory` 工具调用
+- 四个工具都能真实执行并落库：`save_memory`、`get_memory`、`add_todo`、`list_todos`
 
 ## 相关文档
 

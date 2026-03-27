@@ -36,10 +36,12 @@ class ZhipuLLMClientTestCase(unittest.TestCase):
         }
 
         with patch("app.llm.llm_client.requests.post", return_value=response) as mock_post:
-            result = self.client.complete("你好")
+            result = self.client.complete("系统规则", "你好")
 
         self.assertEqual(result, '{"action":"respond","answer":"你好"}')
         self.assertEqual(mock_post.call_args.kwargs["json"]["model"], "glm-test")
+        self.assertEqual(mock_post.call_args.kwargs["json"]["messages"][0]["role"], "system")
+        self.assertEqual(mock_post.call_args.kwargs["json"]["messages"][1]["role"], "user")
 
     def test_complete_raises_runtime_error_on_request_failure(self) -> None:
         """网络请求失败时应抛出可读错误。"""
@@ -49,7 +51,7 @@ class ZhipuLLMClientTestCase(unittest.TestCase):
             side_effect=requests.RequestException("network down"),
         ):
             with self.assertRaises(RuntimeError) as context:
-                self.client.complete("你好")
+                self.client.complete("系统规则", "你好")
 
         self.assertIn("调用智谱接口失败", str(context.exception))
 
@@ -62,7 +64,7 @@ class ZhipuLLMClientTestCase(unittest.TestCase):
 
         with patch("app.llm.llm_client.requests.post", return_value=response):
             with self.assertRaises(RuntimeError) as context:
-                self.client.complete("你好")
+                self.client.complete("系统规则", "你好")
 
         self.assertIn("模型服务返回格式不符合预期", str(context.exception))
 

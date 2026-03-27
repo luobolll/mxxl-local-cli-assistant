@@ -22,8 +22,8 @@ class PromptBuilder:
     def __init__(self, history_limit: int = 6) -> None:
         self.history_limit = history_limit
 
-    def build(self, messages: list[Message], tool_description: str) -> str:
-        """根据历史消息和工具说明生成 prompt 文本。"""
+    def build_user_prompt(self, messages: list[Message]) -> str:
+        """根据历史消息生成 user 侧上下文。"""
 
         history_lines = []
         # 这里只取最近几条历史，避免上下文无限增长。
@@ -32,12 +32,22 @@ class PromptBuilder:
             history_lines.append(f"{role_label}：{message.content}")
 
         history_text = "\n".join(history_lines) if history_lines else "（暂无历史对话）"
+        return (
+            "最近对话如下：\n"
+            f"{history_text}\n\n"
+            "请严格按照系统要求，只返回一个 JSON 对象，不要返回任何解释文本。"
+        )
+
+    def build_system_prompt(self, tool_description: str) -> str:
+        """构造 system 侧规则提示词。"""
 
         return (
             "你是一个运行在本地命令行中的个人助手。\n"
             "你只能输出合法 JSON，不能输出解释、前后缀、Markdown 代码块或额外文本。\n"
             "你每一轮只能选择一个动作：直接回答或调用一个工具。\n"
             "action 只能是 respond 或 tool_call。\n"
+            "如果用户明确要求调用某个工具，就必须返回 tool_call，不要改成自然语言回答。\n"
+            "如果用户要求保存或查询待办、记忆，优先调用工具，不要编造已经执行过的结果。\n"
             '如果直接回答，使用 {"action": "respond", "answer": "..."}。\n'
             '如果需要调用工具，使用 {"action": "tool_call", "tool_name": "...", "arguments": {...}}。\n'
             "不要编造工具执行结果。\n"
@@ -49,6 +59,14 @@ class PromptBuilder:
             "当 action=respond 时，请使用用户当前使用的语言回答。\n\n"
             "可用工具如下：\n"
             f"{tool_description}\n\n"
-            "最近对话如下：\n"
-            f"{history_text}\n"
+            "下面是两个合法输出示例：\n"
+            '{"action": "respond", "answer": "你好"}\n'
+            '{"action": "tool_call", "tool_name": "save_memory", "arguments": {"key": "favorite_drink", "value": "coffee"}}'
         )
+
+    def build(self, messages: list[Message], tool_description: str) -> str:
+        """根据历史消息和工具说明生成可写入 trace 的完整 prompt 文本。"""
+
+        system_prompt = self.build_system_prompt(tool_description)
+        user_prompt = self.build_user_prompt(messages)
+        return f"[SYSTEM]\n{system_prompt}\n\n[USER]\n{user_prompt}"

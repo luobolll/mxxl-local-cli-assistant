@@ -26,22 +26,29 @@ class ZhipuLLMClient:
         self.model = model
         self.timeout_seconds = timeout_seconds
 
-    def complete(self, prompt: str) -> str:
-        """向模型发送 prompt，并返回模型文本输出。"""
+    def complete(self, system_prompt: str, user_prompt: str | None = None) -> str:
+        """向模型发送 prompt，并返回模型文本输出。
+
+        当前优先使用 system + user 双消息结构。
+        如果只传一个参数，则兼容旧版单 user 消息调用方式。
+        """
 
         if not self.api_key:
             raise RuntimeError("缺少智谱接口密钥，请先设置 ZHIPUAI_API_KEY。")
 
-        # 当前骨架只做最直接的一轮对话调用：把完整 prompt 作为一条 user 消息发给模型。
+        messages: list[dict[str, str]]
+        if user_prompt is None:
+            messages = [{"role": "user", "content": system_prompt}]
+        else:
+            messages = [
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_prompt},
+            ]
+
         payload = {
             "model": self.model,
-            "messages": [
-                {
-                    "role": "user",
-                    "content": prompt,
-                }
-            ],
-            "temperature": 0.1,
+            "messages": messages,
+            "temperature": 0.0,
         }
         headers = {
             "Authorization": f"Bearer {self.api_key}",
